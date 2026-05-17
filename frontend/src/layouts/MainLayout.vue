@@ -32,10 +32,6 @@
     <el-container>
       <el-header class="header">
         <span>{{ title }}</span>
-        <div class="user">
-          <span>{{ auth.username }}</span>
-          <el-button type="danger" link @click="onLogout">退出</el-button>
-        </div>
       </el-header>
       <el-main>
         <router-view />
@@ -45,13 +41,11 @@
 </template>
 
 <script setup>
+/** 管理台主布局：侧栏菜单 + 顶栏标题，无登录态。 */
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
+import { useRoute } from "vue-router";
 
 const route = useRoute();
-const router = useRouter();
-const auth = useAuthStore();
 
 const titles = {
   routes: "路由管理",
@@ -63,11 +57,6 @@ const titles = {
 };
 
 const title = computed(() => titles[route.name] || "控制台");
-
-function onLogout() {
-  auth.logout();
-  router.push({ name: "login" });
-}
 </script>
 
 <style scoped>
@@ -91,11 +80,6 @@ function onLogout() {
   justify-content: space-between;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 .el-menu {
   border-right: none;

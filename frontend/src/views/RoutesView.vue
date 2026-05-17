@@ -56,6 +56,7 @@
 </template>
 
 <script setup>
+/** 代理路由 CRUD：支持精确前缀与 /* 通配符。 */
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import http from "@/api/http";

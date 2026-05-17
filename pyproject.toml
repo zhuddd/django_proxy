@@ -1,19 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "django_proxy"
-version = "0.1.0"
-requires-python = ">=3.14"
+name = "transparent-proxy-gateway"
+version = "0.2.0"
+description = "Django ASGI transparent reverse proxy gateway with prefix/wildcard routes, streaming, and admin API"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Transparent Proxy Gateway Contributors" }]
+keywords = ["django", "proxy", "reverse-proxy", "asgi", "httpx", "gateway"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
 dependencies = [
-    "channels>=4.1",
-    "channels-redis>=4.2",
-    "daphne>=4.1",
     "django>=5.0,<7",
     "django-ninja>=1.3",
-    "gunicorn>=22.0",
     "httpx>=0.27",
     "loguru>=0.7",
-    "pyjwt>=2.8",
+    "channels>=4.1",
+    "websockets>=13.0,<16",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]
+mysql = ["mysqlclient>=2.2"]
+redis = ["channels-redis>=4.2", "redis>=5.0"]
+dev = [
+    "daphne>=4.1",
     "python-dotenv>=1.0",
-    "redis>=5.0",
-    "uvicorn[standard]>=0.30",
     "whitenoise>=6.6",
 ]
+
+[project.urls]
+Homepage = "https://github.com/example/transparent-proxy-gateway"
+Documentation = "https://github.com/example/transparent-proxy-gateway#readme"
+
+[tool.hatch.build.targets.wheel]
+packages = ["transparent_proxy_gateway"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["transparent_proxy_gateway", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "django_proxy.settings"
+pythonpath = ["."]
+testpaths = ["transparent_proxy_gateway/tests"]

@@ -1,5 +1,5 @@
 """
-Loguru setup: console + file sinks, print -> logger.info, Django stdlib log interception.
+Loguru 集成：控制台与文件双输出、print 重定向、Django 标准库日志拦截。
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ _original_print = builtins.print
 
 
 class InterceptHandler(logging.Handler):
-    """Route standard logging records to loguru."""
+    """将标准 logging 记录转发到 loguru。"""
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
@@ -38,7 +38,7 @@ class InterceptHandler(logging.Handler):
 
 
 def _print_caller_frame():
-    """Frame where print() was invoked (skip print_to_logger / log_config)."""
+    """定位业务代码中调用 print 的栈帧（跳过 log_config 自身）。"""
     frame = inspect.currentframe()
     if frame:
         frame = frame.f_back  # print_to_logger
@@ -57,6 +57,7 @@ def _print_caller_frame():
 
 
 def _patch_print_record(record: dict, caller: inspect.FrameType) -> dict:
+    """用真实调用方信息覆盖 loguru 记录中的文件/行号字段。"""
     file_path = caller.f_code.co_filename
     record["file"].name = Path(file_path).name
     record["file"].path = file_path
@@ -67,6 +68,7 @@ def _patch_print_record(record: dict, caller: inspect.FrameType) -> dict:
 
 
 def _patch_print() -> None:
+    """将 builtins.print 重定向到 loguru（保留写入非 stdout/stderr 的行为）。"""
     def print_to_logger(*args: Any, **kwargs: Any) -> None:
         target = kwargs.get("file")
         if target is not None and target not in (sys.stdout, sys.stderr):
@@ -101,6 +103,7 @@ def configure_loguru(
     enable_file: bool = True,
     patch_print: bool = True,
 ) -> None:
+    """配置 loguru 输出、按日轮转日志文件，并可选劫持 print。"""
     global _configured
     if _configured:
         return
@@ -148,7 +151,7 @@ def configure_loguru(
 
 
 def get_logging_config(log_level: str = "INFO") -> dict[str, Any]:
-    """Django LOGGING dict — all handlers delegate to loguru."""
+    """生成 Django LOGGING 字典，所有 handler 委托给 loguru。"""
     return {
         "version": 1,
         "disable_existing_loggers": False,

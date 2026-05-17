@@ -37,6 +37,7 @@
 </template>
 
 <script setup>
+/** 分页浏览代理访问日志，支持按方法与状态码筛选。 */
 import { onMounted, reactive, ref } from "vue";
 import http from "@/api/http";
 

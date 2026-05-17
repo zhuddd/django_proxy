@@ -1,14 +1,8 @@
+/** 管理台路由：无登录守卫，默认进入路由管理页。 */
 import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
 import Layout from "@/layouts/MainLayout.vue";
 
 const routes = [
-  {
-    path: "/login",
-    name: "login",
-    component: () => import("@/views/LoginView.vue"),
-    meta: { public: true },
-  },
   {
     path: "/",
     component: Layout,
@@ -27,16 +21,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-});
-
-router.beforeEach((to) => {
-  const auth = useAuthStore();
-  if (!to.meta.public && !auth.isLoggedIn) {
-    return { name: "login" };
-  }
-  if (to.name === "login" && auth.isLoggedIn) {
-    return { name: "routes" };
-  }
 });
 
 export default router;

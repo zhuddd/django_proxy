@@ -1,11 +1,15 @@
+"""
+项目根 URL 配置：Admin、REST API、演示管理台 SPA、透明代理兜底。
+"""
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, re_path
-from django.views.static import serve
+from django.urls import path
 
-from gateway.api import api
-from gateway.views import proxy_view, spa_view
+from django_proxy.frontend_urls import build_spa_urlpatterns
+from django_proxy.gateway_api import api
+from transparent_proxy_gateway.integration import build_proxy_catchall
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -15,24 +19,8 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-_frontend_dist = settings.BASE_DIR / "frontend" / "dist"
-_assets_root = _frontend_dist / "assets"
+# 演示管理台 SPA（本仓库 frontend/，非网关包职责）
+urlpatterns += build_spa_urlpatterns()
 
-urlpatterns += [
-    re_path(
-        r"^assets/(?P<path>.*)$",
-        serve,
-        {"document_root": _assets_root},
-    ),
-    # Vue SPA console routes (sync)
-    re_path(r"^login/?$", spa_view, name="spa-login"),
-    re_path(r"^routes/?$", spa_view, name="spa-routes"),
-    re_path(r"^nodes/?$", spa_view, name="spa-nodes"),
-    re_path(r"^logs/?$", spa_view, name="spa-logs"),
-    re_path(r"^stats/?$", spa_view, name="spa-stats"),
-    re_path(r"^live/?$", spa_view, name="spa-live"),
-    re_path(r"^config/?$", spa_view, name="spa-config"),
-    path("", spa_view, name="spa-index"),
-    # Transparent proxy (async) — must be last
-    re_path(r"^(?P<path>.*)$", proxy_view),
-]
+# 透明代理 catch-all（须在最后）
+urlpatterns.append(build_proxy_catchall())

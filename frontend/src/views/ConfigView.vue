@@ -19,6 +19,7 @@
 </template>
 
 <script setup>
+/** 编辑 SystemConfig 键值（健康检查间隔、超时等）。 */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import http from "@/api/http";

@@ -23,6 +23,7 @@
 </template>
 
 <script setup>
+/** 通过 WebSocket /ws/logs/ 订阅实时代理日志（后端无鉴权）。 */
 import { onMounted, onUnmounted, ref } from "vue";
 
 const connected = ref(false);

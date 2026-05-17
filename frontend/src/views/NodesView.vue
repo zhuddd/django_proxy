@@ -28,6 +28,7 @@
 </template>
 
 <script setup>
+/** 展示各路由上游健康状态，可触发后台批量探测。 */
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import http from "@/api/http";

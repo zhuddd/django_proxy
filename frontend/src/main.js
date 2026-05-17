@@ -1,3 +1,4 @@
+/** Vue 应用入口：注册 Pinia、路由、Element Plus 与图标。 */
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import ElementPlus from "element-plus";

@@ -2,6 +2,12 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+# Allow ``python manage.py`` before editable install (monorepo dev).
+_ROOT = Path(__file__).resolve().parent
+if (_ROOT / "transparent_proxy_gateway").is_dir():
+    sys.path.insert(0, str(_ROOT))
 
 
 def main():

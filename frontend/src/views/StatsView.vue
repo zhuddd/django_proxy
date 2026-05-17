@@ -64,6 +64,7 @@
 </template>
 
 <script setup>
+/** 基于 /api/logs/stats/* 的 ECharts 请求统计看板。 */
 import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import * as echarts from "echarts";
 import http from "@/api/http";
