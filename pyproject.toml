@@ -1,0 +1,19 @@
+[project]
+name = "django_proxy"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "channels>=4.1",
+    "channels-redis>=4.2",
+    "daphne>=4.1",
+    "django>=5.0,<7",
+    "django-ninja>=1.3",
+    "gunicorn>=22.0",
+    "httpx>=0.27",
+    "loguru>=0.7",
+    "pyjwt>=2.8",
+    "python-dotenv>=1.0",
+    "redis>=5.0",
+    "uvicorn[standard]>=0.30",
+    "whitenoise>=6.6",
+]
