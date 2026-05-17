@@ -29,6 +29,7 @@ urlpatterns += [
     re_path(r"^routes/?$", spa_view, name="spa-routes"),
     re_path(r"^nodes/?$", spa_view, name="spa-nodes"),
     re_path(r"^logs/?$", spa_view, name="spa-logs"),
+    re_path(r"^stats/?$", spa_view, name="spa-stats"),
     re_path(r"^live/?$", spa_view, name="spa-live"),
     re_path(r"^config/?$", spa_view, name="spa-config"),
     path("", spa_view, name="spa-index"),

@@ -4,6 +4,13 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from gateway.models import ProxyRoute
+from gateway.proxy.route_rules import (
+    effective_prefix,
+    is_wildcard_prefix,
+    normalize_path,
+    route_specificity,
+    wildcard_base,
+)
 
 
 @dataclass(frozen=True)
@@ -12,30 +19,36 @@ class RouteMatch:
     target_url: str
 
 
-def normalize_path(path: str) -> str:
-    if not path:
-        return "/"
-    if not path.startswith("/"):
-        path = "/" + path
-    return path
-
-
 def prefix_matches(request_path: str, prefix: str) -> bool:
     req = normalize_path(request_path)
+
+    if is_wildcard_prefix(prefix):
+        base = normalize_path(wildcard_base(prefix))
+        if base == "/":
+            return True
+        return req == base or req.startswith(base + "/")
+
     pre = normalize_path(prefix)
     if pre == "/":
         return True
     return req == pre or req.startswith(pre + "/")
 
 
+def _route_sort_key(route: ProxyRoute) -> tuple[int, int]:
+    """Longest effective prefix first; literal beats wildcard at same length."""
+    p = route.prefix
+    wild = 1 if is_wildcard_prefix(p) else 0
+    return (-route_specificity(p), wild)
+
+
 def match_route(request_path: str, routes: list[ProxyRoute]) -> RouteMatch | None:
-    """Longest prefix wins."""
+    """Longest prefix / scope wins; literal routes beat wildcards at same depth."""
     path = normalize_path(request_path)
     enabled = [r for r in routes if r.enabled]
-    enabled.sort(key=lambda r: len(r.normalized_prefix), reverse=True)
+    enabled.sort(key=_route_sort_key)
 
     for route in enabled:
-        if prefix_matches(path, route.normalized_prefix):
+        if prefix_matches(path, route.prefix):
             return RouteMatch(route=route, target_url=build_target_url(route, path, ""))
     return None
 

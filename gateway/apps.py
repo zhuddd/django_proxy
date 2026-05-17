@@ -13,6 +13,9 @@ class GatewayConfig(AppConfig):
     def ready(self):
         import gateway.signals  # noqa: F401
         import gateway.proxy.route_cache  # noqa: F401
+        from gateway.db import setup_sqlite
+
+        setup_sqlite()
 
         if "migrate" in sys.argv or "makemigrations" in sys.argv:
             return

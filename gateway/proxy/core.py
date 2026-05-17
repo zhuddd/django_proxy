@@ -9,6 +9,7 @@ from django.http import HttpResponseNotFound, StreamingHttpResponse
 from loguru import logger
 
 from gateway.proxy.client import get_http_client
+from gateway.proxy.connectivity import format_upstream_error
 from gateway.proxy.headers import BODYLESS_METHODS, filter_hop_by_hop, prepare_outgoing_headers
 from gateway.proxy.router import build_target_from_request, match_route
 from gateway.proxy.route_cache import get_routes
@@ -89,7 +90,7 @@ async def _forward_httpx_stream(
 ) -> StreamingHttpResponse:
     """Primary path: httpx send(stream=True) + StreamingHttpResponse."""
     body = await _read_request_body(request)
-    outgoing_headers = prepare_outgoing_headers(request, target_url)
+    outgoing_headers = prepare_outgoing_headers(request, target_url, route=route)
     cookies = dict(request.COOKIES)
     client = get_http_client()
 
@@ -103,9 +104,10 @@ async def _forward_httpx_stream(
         )
         upstream = await client.send(req, stream=True)
     except httpx.RequestError as exc:
-        logger.error("Upstream unreachable {}: {}", target_url, exc)
+        detail = format_upstream_error(target_url, exc)
+        logger.error("Upstream unreachable {}: {}", target_url, detail)
         return _bad_gateway_response(
-            f"Bad Gateway: {exc}",
+            f"Bad Gateway: {detail}",
             method=method,
             path=request.path_info,
             target_url=target_url,
@@ -116,15 +118,32 @@ async def _forward_httpx_stream(
 
     status_code = upstream.status_code
     raw_headers = dict(upstream.headers)
-    django_headers = filter_hop_by_hop(raw_headers)
+    from gateway.proxy.response_rewrite import apply_response_rewrites, set_response_headers
 
-    logger.debug(
-        "Proxy {} {} -> {} status={}",
-        method,
-        request.path_info,
-        target_url,
-        status_code,
+    from gateway.proxy.response_rewrite import is_redirect_status
+
+    rewritten_headers = apply_response_rewrites(
+        upstream.headers, request, route, target_url=target_url
     )
+
+    if is_redirect_status(status_code):
+        loc = next((v for k, v in rewritten_headers if k.lower() == "location"), None)
+        logger.debug(
+            "Redirect {} {} -> {} status={} Location={}",
+            method,
+            request.path_info,
+            target_url,
+            status_code,
+            loc,
+        )
+    else:
+        logger.debug(
+            "Proxy {} {} -> {} status={}",
+            method,
+            request.path_info,
+            target_url,
+            status_code,
+        )
 
     async def body_iterator() -> AsyncIterator[bytes]:
         error_message = ""
@@ -167,8 +186,7 @@ async def _forward_httpx_stream(
         status=status_code,
         reason=getattr(upstream, "reason_phrase", None),
     )
-    for key, value in django_headers.items():
-        response[key] = value
+    set_response_headers(response, rewritten_headers)
     return response
 
 
@@ -186,7 +204,7 @@ async def _forward_buffered_fallback(
     Still uses httpx; buffers response (not for huge downloads).
     """
     body = await _read_request_body(request)
-    outgoing_headers = prepare_outgoing_headers(request, target_url)
+    outgoing_headers = prepare_outgoing_headers(request, target_url, route=route)
     cookies = dict(request.COOKIES)
     client = get_http_client()
 
@@ -197,11 +215,13 @@ async def _forward_buffered_fallback(
             headers=outgoing_headers,
             cookies=cookies,
             content=body if body else None,
+            follow_redirects=False,
         )
     except httpx.RequestError as exc:
-        logger.error("Buffered upstream failed {}: {}", target_url, exc)
+        detail = format_upstream_error(target_url, exc)
+        logger.error("Buffered upstream failed {}: {}", target_url, detail)
         return _bad_gateway_response(
-            f"Bad Gateway: {exc}",
+            f"Bad Gateway: {detail}",
             method=method,
             path=request.path_info,
             target_url=target_url,
@@ -213,6 +233,11 @@ async def _forward_buffered_fallback(
     status_code = resp.status_code
     raw_headers = dict(resp.headers)
     content = resp.content
+    from gateway.proxy.response_rewrite import apply_response_rewrites, set_response_headers
+
+    rewritten_headers = apply_response_rewrites(
+        resp.headers, request, route, target_url=target_url
+    )
 
     async def body_iterator() -> AsyncIterator[bytes]:
         yield content
@@ -246,8 +271,7 @@ async def _forward_buffered_fallback(
         status=status_code,
         reason=getattr(resp, "reason_phrase", None),
     )
-    for key, value in filter_hop_by_hop(raw_headers).items():
-        response[key] = value
+    set_response_headers(response, rewritten_headers)
     return response
 
 

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import httpx
 from django.conf import settings
+from loguru import logger
+
+from gateway.proxy.ssl_config import get_proxy_ssl_verify, log_ssl_verify_mode
 
 
 class HttpClientPool:
@@ -18,6 +21,8 @@ class HttpClientPool:
                 max_connections=getattr(settings, "HTTPX_MAX_CONNECTIONS", 200),
                 max_keepalive_connections=getattr(settings, "HTTPX_MAX_KEEPALIVE", 50),
             )
+            verify = get_proxy_ssl_verify()
+            log_ssl_verify_mode()
             cls._instance = httpx.AsyncClient(
                 timeout=httpx.Timeout(
                     connect=connect, read=read, write=read, pool=connect
@@ -26,7 +31,10 @@ class HttpClientPool:
                 follow_redirects=False,
                 trust_env=False,
                 proxy=None,
+                verify=verify,
             )
+            if verify is False:
+                logger.debug("Proxy httpx client created with verify=False")
         return cls._instance
 
     @classmethod

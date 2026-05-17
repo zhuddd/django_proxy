@@ -1,9 +1,11 @@
 from ninja import Router, Query
 
+from gateway.api.stats import router as stats_router
 from gateway.models import ProxyLog
 from gateway.schemas.logs import ProxyLogOut
 
 router = Router()
+router.add_router("/stats", stats_router, tags=["Log Stats"])
 
 
 @router.get("", response=list[ProxyLogOut])

@@ -1,18 +1,29 @@
 from django.shortcuts import get_object_or_404
 from ninja import Router
+from ninja.errors import HttpError
 
 from gateway.models import NodeStatus, ProxyRoute
 from gateway.proxy.route_cache import invalidate_route_cache
+from gateway.proxy.route_rules import (
+    normalize_route_prefix,
+    validate_no_wildcard_conflict,
+    validate_wildcard_scope_clean,
+    validate_wildcard_uniqueness,
+)
 from gateway.schemas.routes import ProxyRouteIn, ProxyRouteOut, ProxyRouteUpdate
 
 router = Router()
 
 
-def _normalize_prefix(prefix: str) -> str:
-    p = prefix.strip()
-    if not p.startswith("/"):
-        p = "/" + p
-    return p.rstrip("/") or "/"
+def _prepare_prefix(prefix: str, *, route_id: int | None = None) -> str:
+    try:
+        normalized = normalize_route_prefix(prefix)
+        validate_wildcard_uniqueness(normalized, exclude_route_id=route_id)
+        validate_wildcard_scope_clean(normalized, exclude_route_id=route_id)
+        validate_no_wildcard_conflict(normalized)
+    except ValueError as exc:
+        raise HttpError(400, str(exc)) from exc
+    return normalized
 
 
 @router.get("", response=list[ProxyRouteOut])
@@ -22,8 +33,9 @@ def list_routes(request):
 
 @router.post("", response=ProxyRouteOut)
 def create_route(request, payload: ProxyRouteIn):
+    prefix = _prepare_prefix(payload.prefix)
     route = ProxyRoute.objects.create(
-        prefix=_normalize_prefix(payload.prefix),
+        prefix=prefix,
         target_url=payload.target_url.rstrip("/"),
         enabled=payload.enabled,
         description=payload.description,
@@ -43,7 +55,7 @@ def update_route(request, route_id: int, payload: ProxyRouteUpdate):
     route = get_object_or_404(ProxyRoute, pk=route_id)
     data = payload.dict(exclude_unset=True)
     if "prefix" in data and data["prefix"] is not None:
-        data["prefix"] = _normalize_prefix(data["prefix"])
+        data["prefix"] = _prepare_prefix(data["prefix"], route_id=route_id)
     if "target_url" in data and data["target_url"] is not None:
         data["target_url"] = data["target_url"].rstrip("/")
     for k, v in data.items():

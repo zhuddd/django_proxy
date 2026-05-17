@@ -22,9 +22,10 @@ def filter_hop_by_hop(headers) -> dict[str, str]:
     return {k: v for k, v in headers.items() if not is_hop_by_hop(k)}
 
 
-def prepare_outgoing_headers(request, target_url: str) -> dict[str, str]:
+def prepare_outgoing_headers(request, target_url: str, route=None) -> dict[str, str]:
     """Forward client headers; set Host + X-Forwarded-* for upstream."""
     from gateway.proxy.router import upstream_host_header
+    from gateway.proxy.response_rewrite import rewrite_referer_origin
 
     outgoing = filter_hop_by_hop(dict(request.headers))
     for key in ("Host", "host", "Content-Length", "content-length"):
@@ -43,6 +44,9 @@ def prepare_outgoing_headers(request, target_url: str) -> dict[str, str]:
     outgoing["X-Forwarded-Proto"] = request.scheme
     if client_ip:
         outgoing["X-Real-IP"] = client_ip
+
+    if route is not None:
+        rewrite_referer_origin(outgoing, request, route)
 
     return outgoing
 

@@ -20,10 +20,26 @@ class ProxyRoute(models.Model):
 
     @property
     def normalized_prefix(self) -> str:
+        from gateway.proxy.route_rules import effective_prefix, is_wildcard_prefix
+
         p = self.prefix.strip()
         if not p.startswith("/"):
             p = "/" + p
+        if is_wildcard_prefix(p):
+            return p
         return p.rstrip("/") or "/"
+
+    @property
+    def is_wildcard(self) -> bool:
+        from gateway.proxy.route_rules import is_wildcard_prefix
+
+        return is_wildcard_prefix(self.prefix)
+
+    @property
+    def effective_prefix(self) -> str:
+        from gateway.proxy.route_rules import effective_prefix as eff
+
+        return eff(self.prefix)
 
 
 class ProxyLog(models.Model):

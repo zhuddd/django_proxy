@@ -2,12 +2,17 @@
   <el-card>
     <template #header>
       <div class="toolbar">
-        <span>代理路由（最长前缀优先）</span>
+        <span>代理路由（最长前缀优先，支持 /* 通配）</span>
         <el-button type="primary" @click="openDialog()">新增路由</el-button>
       </div>
     </template>
     <el-table :data="routes" v-loading="loading" stripe>
-      <el-table-column prop="prefix" label="前缀" width="180" />
+      <el-table-column prop="prefix" label="前缀" width="200">
+        <template #default="{ row }">
+          <span>{{ row.prefix }}</span>
+          <el-tag v-if="row.is_wildcard" size="small" type="warning" style="margin-left: 6px">通配</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="target_url" label="上游地址" />
       <el-table-column prop="enabled" label="启用" width="80">
         <template #default="{ row }">
@@ -26,7 +31,11 @@
     <el-dialog v-model="dialogVisible" :title="editing ? '编辑路由' : '新增路由'" width="520px">
       <el-form :model="form" label-width="100px">
         <el-form-item label="路径前缀">
-          <el-input v-model="form.prefix" placeholder="/account" />
+          <el-input v-model="form.prefix" placeholder="/account 或 /robot/* 或 /*" />
+          <div class="hint">
+            通配符仅支持末尾 <code>/*</code>。每个作用域只能一条通配路由（全局仅一条
+            <code>/*</code>，<code>/robot/*</code> 下也只能有一个上游）。
+          </div>
         </el-form-item>
         <el-form-item label="上游 URL">
           <el-input v-model="form.target_url" placeholder="http://192.168.1.2:8000" />
@@ -112,5 +121,11 @@ onMounted(load);
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
 }
 </style>

@@ -23,7 +23,8 @@ ALLOWED_HOSTS = [
     for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
     if h.strip()
 ]
-
+# SECURE_REFERRER_POLICY = "none"
+# SECURE_CROSS_ORIGIN_OPENER_POLICY = "none"
 INSTALLED_APPS = [
     "daphne",
     "django.contrib.admin",
@@ -42,7 +43,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "gateway.middleware.proxy_gate.ProxyGateMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -72,8 +73,19 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "data" / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 20,
+        },
     }
 }
+
+# Health checker (background thread — must not block proxy)
+HEALTH_CHECK_ENABLED = os.environ.get("HEALTH_CHECK_ENABLED", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+HEALTH_CHECK_CONCURRENCY = int(os.environ.get("HEALTH_CHECK_CONCURRENCY", "5"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -106,6 +118,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 PROXY_FORWARD_MODE = os.environ.get("PROXY_FORWARD_MODE", "stream")
 PROXY_CONNECT_TIMEOUT = float(os.environ.get("PROXY_CONNECT_TIMEOUT", "10"))
 PROXY_READ_TIMEOUT = float(os.environ.get("PROXY_READ_TIMEOUT", "300"))
+# Upstream HTTPS: true | false | path to CA bundle (PROXY_SSL_CA_BUNDLE)
+PROXY_SSL_VERIFY = os.environ.get("PROXY_SSL_VERIFY", "true").lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
+PROXY_SSL_CA_BUNDLE = os.environ.get("PROXY_SSL_CA_BUNDLE", "").strip()
 HTTPX_MAX_CONNECTIONS = int(os.environ.get("HTTPX_MAX_CONNECTIONS", "200"))
 HTTPX_MAX_KEEPALIVE = int(os.environ.get("HTTPX_MAX_KEEPALIVE", "50"))
 

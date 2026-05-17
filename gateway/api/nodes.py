@@ -1,9 +1,9 @@
-from asgiref.sync import async_to_sync
 from ninja import Router
+from ninja.errors import HttpError
 
 from gateway.models import NodeStatus
 from gateway.schemas.nodes import NodeStatusOut
-from gateway.services.health_checker import run_health_checks
+from gateway.services.health_checker import schedule_health_checks
 
 router = Router()
 
@@ -28,5 +28,7 @@ def list_nodes(request):
 
 @router.post("/check")
 def trigger_check(request):
-    async_to_sync(run_health_checks)()
-    return {"success": True}
+    """Non-blocking: runs in a short-lived background thread."""
+    if not schedule_health_checks():
+        raise HttpError(409, "Health check already in progress")
+    return {"success": True, "message": "Health check scheduled"}

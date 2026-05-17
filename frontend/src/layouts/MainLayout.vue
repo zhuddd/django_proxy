@@ -15,6 +15,10 @@
           <el-icon><Document /></el-icon>
           <span>请求日志</span>
         </el-menu-item>
+        <el-menu-item index="stats" :route="{ name: 'stats' }">
+          <el-icon><TrendCharts /></el-icon>
+          <span>请求统计</span>
+        </el-menu-item>
         <el-menu-item index="live" :route="{ name: 'live' }">
           <el-icon><VideoPlay /></el-icon>
           <span>实时日志</span>
@@ -53,6 +57,7 @@ const titles = {
   routes: "路由管理",
   nodes: "节点状态",
   logs: "请求日志",
+  stats: "请求统计",
   live: "实时日志",
   config: "系统配置",
 };

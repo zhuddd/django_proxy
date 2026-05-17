@@ -23,5 +23,10 @@ class ProxyRouteOut(Schema):
     target_url: str
     enabled: bool
     description: str
+    is_wildcard: bool = False
     created_at: datetime
     updated_at: datetime
+
+    @staticmethod
+    def resolve_is_wildcard(obj):
+        return obj.is_wildcard
